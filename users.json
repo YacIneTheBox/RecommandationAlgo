@@ -1,0 +1,286 @@
+[
+    {
+        "user_id": "user_0",
+        "name": "User0",
+        "weights": {
+            "Math": 0.93,
+            "Physique": 0.55,
+            "Psycho": 1.37,
+            "Medecine": 1.08,
+            "Histoire": 3.07,
+            "Geographie": 4.22,
+            "Geologie": 3.29,
+            "Informatique": 1.13,
+            "Art": 1.63
+        },
+        "history": [
+            "article_157",
+            "article_181",
+            "article_183",
+            "article_23",
+            "article_37"
+        ],
+        "mastery": {
+            "Math": 3,
+            "Physique": 2,
+            "Psycho": 2,
+            "Medecine": 1,
+            "Histoire": 1,
+            "Geographie": 3,
+            "Geologie": 2,
+            "Informatique": 3,
+            "Art": 3
+        }
+    },
+    {
+        "user_id": "user_1",
+        "name": "User1",
+        "weights": {
+            "Math": 2.97,
+            "Physique": 1.98,
+            "Psycho": 1.17,
+            "Medecine": 0.97,
+            "Histoire": 2.96,
+            "Geographie": 2.38,
+            "Geologie": 0.73,
+            "Informatique": 2.12,
+            "Art": 1.02
+        },
+        "history": [
+            "article_35"
+        ],
+        "mastery": {
+            "Math": 3,
+            "Physique": 2,
+            "Psycho": 2,
+            "Medecine": 2,
+            "Histoire": 3,
+            "Geographie": 3,
+            "Geologie": 1,
+            "Informatique": 3,
+            "Art": 1
+        }
+    },
+    {
+        "user_id": "user_2",
+        "name": "User2",
+        "weights": {
+            "Math": 2.78,
+            "Physique": 1.59,
+            "Psycho": 2.48,
+            "Medecine": 1.22,
+            "Histoire": 2.07,
+            "Geographie": 0.91,
+            "Geologie": 2.02,
+            "Informatique": 1.58,
+            "Art": 1.39
+        },
+        "history": [],
+        "mastery": {
+            "Math": 1,
+            "Physique": 1,
+            "Psycho": 2,
+            "Medecine": 3,
+            "Histoire": 3,
+            "Geographie": 2,
+            "Geologie": 1,
+            "Informatique": 1,
+            "Art": 2
+        }
+    },
+    {
+        "user_id": "user_3",
+        "name": "User3",
+        "weights": {
+            "Math": 0.75,
+            "Physique": 2.09,
+            "Psycho": 1.13,
+            "Medecine": 1.2,
+            "Histoire": 1.32,
+            "Geographie": 0.6,
+            "Geologie": 1.93,
+            "Informatique": 1.33,
+            "Art": 0.92
+        },
+        "history": [],
+        "mastery": {
+            "Math": 3,
+            "Physique": 3,
+            "Psycho": 3,
+            "Medecine": 2,
+            "Histoire": 2,
+            "Geographie": 1,
+            "Geologie": 1,
+            "Informatique": 1,
+            "Art": 3
+        }
+    },
+    {
+        "user_id": "user_4",
+        "name": "User4",
+        "weights": {
+            "Math": 0.8,
+            "Physique": 2.78,
+            "Psycho": 3.32,
+            "Medecine": 1.82,
+            "Histoire": 1.51,
+            "Geographie": 2.44,
+            "Geologie": 2.88,
+            "Informatique": 2.58,
+            "Art": 1.62
+        },
+        "history": [
+            "article_7",
+            "article_17",
+            "article_18",
+            "article_19",
+            "article_21"
+        ],
+        "mastery": {
+            "Math": 2,
+            "Physique": 1,
+            "Psycho": 1,
+            "Medecine": 2,
+            "Histoire": 3,
+            "Geographie": 3,
+            "Geologie": 1,
+            "Informatique": 2,
+            "Art": 1
+        }
+    },
+    {
+        "user_id": "user_5",
+        "name": "User5",
+        "weights": {
+            "Math": 1.01,
+            "Physique": 1.13,
+            "Psycho": 1.46,
+            "Medecine": 1.39,
+            "Histoire": 1.44,
+            "Geographie": 2.36,
+            "Geologie": 0.67,
+            "Informatique": 1.84,
+            "Art": 0.72
+        },
+        "history": [],
+        "mastery": {
+            "Math": 2,
+            "Physique": 1,
+            "Psycho": 2,
+            "Medecine": 1,
+            "Histoire": 1,
+            "Geographie": 1,
+            "Geologie": 2,
+            "Informatique": 1,
+            "Art": 3
+        }
+    },
+    {
+        "user_id": "user_6",
+        "name": "User6",
+        "weights": {
+            "Math": 1.1,
+            "Physique": 2.53,
+            "Psycho": 2.03,
+            "Medecine": 2.78,
+            "Histoire": 0.56,
+            "Geographie": 0.51,
+            "Geologie": 2.57,
+            "Informatique": 2.35,
+            "Art": 1.51
+        },
+        "history": [],
+        "mastery": {
+            "Math": 2,
+            "Physique": 2,
+            "Psycho": 1,
+            "Medecine": 3,
+            "Histoire": 1,
+            "Geographie": 2,
+            "Geologie": 3,
+            "Informatique": 3,
+            "Art": 3
+        }
+    },
+    {
+        "user_id": "user_7",
+        "name": "User7",
+        "weights": {
+            "Math": 2.03,
+            "Physique": 2.55,
+            "Psycho": 2.15,
+            "Medecine": 1.12,
+            "Histoire": 1.1,
+            "Geographie": 2.41,
+            "Geologie": 0.53,
+            "Informatique": 1.4,
+            "Art": 0.82
+        },
+        "history": [],
+        "mastery": {
+            "Math": 1,
+            "Physique": 3,
+            "Psycho": 2,
+            "Medecine": 2,
+            "Histoire": 3,
+            "Geographie": 3,
+            "Geologie": 2,
+            "Informatique": 1,
+            "Art": 3
+        }
+    },
+    {
+        "user_id": "user_8",
+        "name": "User8",
+        "weights": {
+            "Math": 1.81,
+            "Physique": 2.96,
+            "Psycho": 2.03,
+            "Medecine": 1.26,
+            "Histoire": 2.34,
+            "Geographie": 1.8,
+            "Geologie": 1.19,
+            "Informatique": 0.93,
+            "Art": 1.26
+        },
+        "history": [],
+        "mastery": {
+            "Math": 1,
+            "Physique": 3,
+            "Psycho": 1,
+            "Medecine": 3,
+            "Histoire": 1,
+            "Geographie": 2,
+            "Geologie": 3,
+            "Informatique": 2,
+            "Art": 1
+        }
+    },
+    {
+        "user_id": "user_9",
+        "name": "User9",
+        "weights": {
+            "Math": 1.79,
+            "Physique": 2.28,
+            "Psycho": 2.79,
+            "Medecine": 2.58,
+            "Histoire": 2.33,
+            "Geographie": 2.28,
+            "Geologie": 1.44,
+            "Informatique": 2.84,
+            "Art": 0.6
+        },
+        "history": [],
+        "mastery": {
+            "Math": 2,
+            "Physique": 1,
+            "Psycho": 1,
+            "Medecine": 1,
+            "Histoire": 3,
+            "Geographie": 2,
+            "Geologie": 3,
+            "Informatique": 3,
+            "Art": 1
+        }
+    }
+]
