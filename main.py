@@ -38,11 +38,15 @@ def calculate_score(user, article):
     elif diff < 0:
         score -= 1.0  # Trop facile (Petite pénalité)
 
+    # protection to not go negative
+    if score < 0:
+        score = 0.1
+
     # C. Jitter (Aléatoire pour la découverte)
     # Ajoute un petit flou pour que les listes ne soient pas figées
     score += random.uniform(0, 0.2)
 
-    return score
+    return round(score, 2)
 
 
 # --- 3. GÉNÉRATEUR DE LISTE ---
@@ -103,7 +107,7 @@ def get_recommendations(user_id, all_users, all_articles, top_n=10):
                     "title": article["title"],
                     "tags": article["tags"],
                     "level": article["level"],
-                    "score": 0.0,  # Score fictif
+                    "score": calculate_score(target_user, article),  # Score fictif
                     "type": "🌟 DÉCOUVERTE",  # Pour l'affichage
                 }
             )
@@ -251,6 +255,85 @@ def print_reco_table(recos):
         print(f"{i + 1}. {r['score']:<8} | {r['level']:<4} | {title:<25} | {tags_str}")
 
 
+def create_new_user_wizard():
+    print("\n" + "=" * 40)
+    print("👋 BIENVENUE ! CRÉATION DE PROFIL")
+    print("=" * 40)
+
+    # 1. On récupère tous les tags possibles depuis le fichier articles
+    with open("articles.json", "r") as f:
+        articles = json.load(f)
+
+    # On utilise un set() pour avoir une liste unique de tags
+    all_tags = set()
+    for art in articles:
+        for t in art["tags"]:
+            all_tags.add(t)
+    sorted_tags = sorted(list(all_tags))
+
+    # 2. Saisie du nom
+    user_name = input("👉 Comment t'appelles-tu ? : ")
+    new_id = f"user_{random.randint(1000, 9999)}"  # ID aléatoire simple
+
+    # 3. Initialisation du profil vide
+    # Par défaut, tout le monde est curieux (0.5) et débutant (1)
+    new_user = {
+        "user_id": new_id,
+        "name": user_name,
+        "weights": {tag: 0.5 for tag in sorted_tags},
+        "mastery": {tag: 1 for tag in sorted_tags},
+        "history": [],
+    }
+
+    print("\n🎯 PARLONS DE TES GOÛTS...")
+    print("Voici les sujets disponibles :")
+    for i, tag in enumerate(sorted_tags):
+        print(f"   {i + 1}. {tag}")
+
+    # 4. Sélection des intérêts
+    print(
+        "\nQuels sujets t'intéressent ? (Entre les numéros séparés par une virgule, ex: 1,4,8)"
+    )
+    choices = input("👉 Ton choix : ")
+
+    try:
+        indices = [int(x.strip()) - 1 for x in choices.split(",")]
+
+        for idx in indices:
+            if 0 <= idx < len(sorted_tags):
+                selected_tag = sorted_tags[idx]
+
+                # A. On booste le poids
+                new_user["weights"][selected_tag] = 2.5
+
+                # B. On demande le niveau pour ce tag précis
+                print(f"\n📚 Quel est ton niveau en '{selected_tag}' ?")
+                print("   1. Débutant (Je découvre)")
+                print("   2. Intermédiaire (J'ai des bases)")
+                # Pas de niveau 3 proposé, il faut le mériter !
+
+                lvl = input("👉 Niveau (1-2) [Défaut: 1] : ")
+                if lvl == "2":
+                    new_user["mastery"][selected_tag] = 2
+                else:
+                    new_user["mastery"][selected_tag] = 1
+
+    except ValueError:
+        print("⚠️  Erreur de saisie. On garde les valeurs par défaut.")
+
+    # 5. Sauvegarde
+    with open("users.json", "r") as f:
+        users = json.load(f)
+
+    users.append(new_user)
+
+    with open("users.json", "w") as f:
+        json.dump(users, f, indent=4)
+
+    print(f"\n✅ Compte créé avec succès ! Ton ID est : {new_id}")
+    return new_id
+
+
 # --- 5. EXÉCUTION DU SCÉNARIO ---
 if __name__ == "__main__":
     # Initialisation
@@ -275,6 +358,7 @@ if __name__ == "__main__":
         print("5. ❤️ Simuler LIKE")
         print("6. 🚪 Quitter")
         print("7. ⏳ Simuler '1 Semaine plus tard' (Decay)")  # NOUVEAU
+        print("8. ✨ Créer un nouvel utilisateur (Onboarding)")
         print("=" * 30)
 
         try:
@@ -331,6 +415,15 @@ if __name__ == "__main__":
             apply_time_decay()
             # On recharge pour voir les effets si on fait un choix 3 juste après
             users, articles = load_data()
-
+        elif choice == 8:
+            created_id = create_new_user_wizard()
+            # On connecte automatiquement le nouvel utilisateur
+            test_user_id = created_id
+            # On recharge les données
+            users, articles = load_data()
         else:
             print("❌ Choix invalide.")
+
+
+# eventually adding some like levels a atteindre pour un sentiment d'amelioration
+# proposer une recommandation plus poussé en proposant des resumé d'article et voir lequels l'interessent
