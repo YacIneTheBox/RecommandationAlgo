@@ -49,15 +49,13 @@ def calculate_score(user, article):
 def get_recommendations(user_id, all_users, all_articles, top_n=10):
     # Trouver le bon utilisateur
     target_user = next((u for u in all_users if u["user_id"] == user_id), None)
-
     if not target_user:
         return []
 
     scored_articles = []
 
+    # --- 1. SCORING CLASSIQUE ---
     for article in all_articles:
-        # On évite de recommander les articles déjà lus (history)
-        # (Pour ce test simple, on suppose que l'historique contient des ID d'articles)
         if article["article_id"] in target_user["history"]:
             continue
 
@@ -70,22 +68,59 @@ def get_recommendations(user_id, all_users, all_articles, top_n=10):
                 "tags": article["tags"],
                 "level": article["level"],
                 "score": round(final_score, 2),
+                "type": "pertinence",  # On marque l'origine
             }
         )
 
-    # Tri décroissant (les plus gros scores en premier)
+    # Tri décroissant
     scored_articles.sort(key=lambda x: x["score"], reverse=True)
 
-    return target_user, scored_articles[:top_n]
+    # --- 2. INJECTION DE DIVERSITÉ ---
+    # On garde les (top_n - 2) meilleurs articles "logiques"
+    nb_pertinent = max(1, int(0.8 * top_n))
+    final_list = scored_articles[:nb_pertinent]
+
+    # On cherche des articles "Découverte" (Tags avec poids faible < 1.5)
+    discovery_candidates = []
+    low_interest_tags = [t for t, w in target_user["weights"].items() if w < 1.5]
+
+    # Si l'user aime tout, on prend n'importe quoi d'autre
+    if not low_interest_tags:
+        low_interest_tags = list(target_user["weights"].keys())
+
+    for article in all_articles:
+        # Pas d'article déjà lu, ni déjà dans la liste finale
+        if article["article_id"] in target_user["history"]:
+            continue
+        if any(a["id"] == article["article_id"] for a in final_list):
+            continue
+
+        # Si l'article contient un tag "faible intérêt"
+        if any(t in low_interest_tags for t in article["tags"]):
+            discovery_candidates.append(
+                {
+                    "id": article["article_id"],
+                    "title": article["title"],
+                    "tags": article["tags"],
+                    "level": article["level"],
+                    "score": 0.0,  # Score fictif
+                    "type": "🌟 DÉCOUVERTE",  # Pour l'affichage
+                }
+            )
+
+    # On ajoute 2 articles de découverte au hasard (s'il y en a)
+    if discovery_candidates:
+        final_list.extend(
+            random.sample(discovery_candidates, min(2, len(discovery_candidates)))
+        )
+
+    # Optionnel : On mélange un peu la fin de liste pour ne pas que les découvertes soient toujours en bas
+    # Mais pour l'instant, laissons-les à la fin pour bien les voir.
+
+    return target_user, final_list
 
 
 def simulate_interaction(user_id, article_id, interaction_type):
-    # Définition des points selon l'action
-    addedPoints = 0.0
-    if interaction_type == "read":
-        addedPoints = 0.2
-    elif interaction_type == "like":
-        addedPoints = 0.3  # Le like vaut plus que la lecture simple
 
     # Chargement
     with open("users.json", "r") as f:
@@ -101,66 +136,94 @@ def simulate_interaction(user_id, article_id, interaction_type):
         print(f"❌ Erreur : Article {article_id} introuvable.")
         return
 
-    # Recherche et modification de l'utilisateur
-    for user in users:
-        if user["user_id"] == user_id:
-            print(
-                f"\n[ACTION] {user['name']} effectue : {interaction_type.upper()} sur {article_id}"
-            )
+    # Définition des points selon l'action
+    addedPoints = 0.0
+    if interaction_type == "read":
+        addedPoints = 0.2
+        # Recherche et modification de l'utilisateur
+        for user in users:
+            if user["user_id"] == user_id:
+                print(
+                    f"\n[ACTION] {user['name']} effectue : {interaction_type.upper()} sur {article_id}"
+                )
 
-            # 1. Mise à jour des poids (Weights)
-            for tag in target_article["tags"]:
-                old_weight = user["weights"].get(tag, 0)
-                new_weight = round(old_weight + addedPoints, 2)
-                user["weights"][tag] = new_weight
-                print(f"   -> Poids '{tag}': {old_weight} 📈 {new_weight}")
+                # 1. Mise à jour des poids (Weights)
+                for tag in target_article["tags"]:
+                    old_weight = user["weights"].get(tag, 0)
+                    new_weight = round(old_weight + addedPoints, 2)
+                    user["weights"][tag] = new_weight
+                    print(f"   -> Poids '{tag}': {old_weight} 📈 {new_weight}")
 
-            # 2. Mise à jour de l'historique (SANS DUPLICATION)
-            if article_id not in user["history"]:
-                user["history"].append(article_id)
-                print(f"   -> Ajouté à l'historique de lecture.")
-            else:
-                print(f"   -> Déjà dans l'historique (pas de doublon).")
+                # 2. Mise à jour de l'historique (SANS DUPLICATION)
+                if article_id not in user["history"]:
+                    user["history"].append(article_id)
+                    print(f"   -> Ajouté à l'historique de lecture.")
+                else:
+                    print(f"   -> Déjà dans l'historique (pas de doublon).")
 
-            # 3. Sauvegarde immédiate
-            with open("users.json", "w") as f:
-                json.dump(users, f, indent=4)
-            break
+                # 3. Sauvegarde immédiate
+                with open("users.json", "w") as f:
+                    json.dump(users, f, indent=4)
+                break
+    elif interaction_type == "like":
+        addedPoints = 0.3  # Le like vaut plus que la lecture simple
+        for user in users:
+            if user["user_id"] == user_id:
+                print(
+                    f"\n[ACTION] {user['name']} effectue : {interaction_type.upper()} sur {article_id}"
+                )
+
+                # 1. Mise à jour des poids (Weights)
+                for tag in target_article["tags"]:
+                    old_weight = user["weights"].get(tag, 0)
+                    new_weight = round(old_weight + addedPoints, 2)
+                    user["weights"][tag] = new_weight
+                    print(f"   -> Poids '{tag}': {old_weight} 📈 {new_weight}")
+
+                # 2. Sauvegarde immédiate
+                with open("users.json", "w") as f:
+                    json.dump(users, f, indent=4)
+                break
+    elif interaction_type == "quiz":
+        addedPoints = 0.5
+        for user in users:
+            if user["user_id"] == user_id:
+                print(
+                    f"\n[ACTION] {user['name']} effectue : {interaction_type.upper()} sur {article_id}"
+                )
+
+                # 1. Mise à jour des poids (Weights)
+                for tag in target_article["tags"]:
+                    old_weight = user["weights"].get(tag, 0)
+                    new_weight = round(old_weight + addedPoints, 2)
+                    user["weights"][tag] = new_weight
+                    print(f"   -> Poids '{tag}': {old_weight} 📈 {new_weight}")
+
+                # 2. Sauvegarde immédiate
+                with open("users.json", "w") as f:
+                    json.dump(users, f, indent=4)
+                break
 
 
-# --- 4. SIMULATION D'ACTION (Mise à jour) ---
-def simulate_reading(user_id, article_id):
-    # Cette fonction simule: "L'utilisateur a lu et aimé"
-    # On recharge le fichier pour être sûr d'avoir la dernière version
+# ajouter une degradation des poids
+def apply_time_decay():
+    DECAY_FACTOR = 0.95  # On perd 5% d'intérêt par "cycle" (semaine/jour)
+
     with open("users.json", "r") as f:
         users = json.load(f)
 
-    with open("articles.json", "r") as f:
-        articles = json.load(f)
-
-    target_article = next((u for u in articles if u["article_id"] == article_id), None)
-    if not target_article:
-        print(f"Article avec l'ID {article_id} non trouvé.")
-        return
-
+    print("\n⏳ Passage du temps (Decay)...")
     for user in users:
-        if user["user_id"] == user_id:
-            print(f"\n[ACTION] {user['name']} lit un article {article_id}...")
-            # Mise à jour des poids
-            for tag in target_article["tags"]:
-                old_weight = user["weights"][tag]
-                user["weights"][tag] = round(
-                    old_weight + 0.2, 2
-                )  # +0.2 points d'intérêt
-                print(
-                    f"   -> Poids '{tag}' passe de {old_weight} à {user['weights'][tag]}"
-                )
+        print(f"   User {user['user_id']} : ", end="")
+        for tag, weight in user["weights"].items():
+            # On ne descend pas en dessous de 0.1 pour garder une trace
+            new_weight = max(0.1, round(weight * DECAY_FACTOR, 2))
+            user["weights"][tag] = new_weight
+        print("Poids mis à jour.")
 
-            user["history"].append(article_id)
-            # Sauvegarde
-            with open("users.json", "w") as f:
-                json.dump(users, f, indent=4)
-            break
+    with open("users.json", "w") as f:
+        json.dump(users, f, indent=4)
+    print("✅ Temps écoulé : Tous les intérêts ont légèrement baissé.")
 
 
 # --- FONCTION UTILITAIRE POUR L'AFFICHAGE ---
@@ -201,7 +264,7 @@ if __name__ == "__main__":
     while True:
         # --- AFFICHAGE DU MENU ---
         print("\n" + "=" * 30)
-        print(f"🕹️  PANNEAU DE CONTRÔLE")
+        print("🕹️  PANNEAU DE CONTRÔLE")
         print(f"   User Actuel   : {test_user_id}")
         print(f"   Article Cible : {test_article_id}")
         print("-" * 30)
@@ -211,6 +274,7 @@ if __name__ == "__main__":
         print("4. 📖 Simuler LECTURE (Read)")
         print("5. ❤️ Simuler LIKE")
         print("6. 🚪 Quitter")
+        print("7. ⏳ Simuler '1 Semaine plus tard' (Decay)")  # NOUVEAU
         print("=" * 30)
 
         try:
@@ -263,6 +327,10 @@ if __name__ == "__main__":
         elif choice == 6:
             print("Fermeture... Bye ! 👋")
             break
+        elif choice == 7:
+            apply_time_decay()
+            # On recharge pour voir les effets si on fait un choix 3 juste après
+            users, articles = load_data()
 
         else:
             print("❌ Choix invalide.")
