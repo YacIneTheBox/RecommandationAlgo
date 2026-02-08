@@ -310,5 +310,59 @@
             "Psycho": 1
         },
         "history": []
+    },
+    {
+        "user_id": "user_36034",
+        "name": "azizofsky",
+        "weights": {
+            "Art": 2.8,
+            "Geographie": 1.3,
+            "Geologie": 0.0,
+            "Histoire": 0.5,
+            "Informatique": 0.0,
+            "Math": 1.8,
+            "Medecine": 0.5,
+            "Physique": 0.5,
+            "Psycho": 2.0
+        },
+        "mastery": {
+            "Art": 1,
+            "Geographie": 1,
+            "Geologie": 1,
+            "Histoire": 1,
+            "Informatique": 1,
+            "Math": 1,
+            "Medecine": 1,
+            "Physique": 1,
+            "Psycho": 1
+        },
+        "history": []
+    },
+    {
+        "user_id": "user_82489",
+        "name": "jordanofsky",
+        "weights": {
+            "Art": 2.0,
+            "Geographie": 0.5,
+            "Geologie": 0.5,
+            "Histoire": 0.5,
+            "Informatique": 0.5,
+            "Math": 2.0,
+            "Medecine": 0.5,
+            "Physique": 0.5,
+            "Psycho": 2.0
+        },
+        "mastery": {
+            "Art": 1,
+            "Geographie": 1,
+            "Geologie": 1,
+            "Histoire": 1,
+            "Informatique": 1,
+            "Math": 1,
+            "Medecine": 1,
+            "Physique": 1,
+            "Psycho": 1
+        },
+        "history": []
     }
 ]

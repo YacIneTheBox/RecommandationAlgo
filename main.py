@@ -334,6 +334,130 @@ def create_new_user_wizard():
     return new_id
 
 
+def onboard_user_hybrid():
+    print("\n" + "🚀" * 40)
+    print("   BIENVENUE ! CRÉATION DE TON PROFIL")
+
+    # --- ÉTAPE 1 : CHARGEMENT DES DONNÉES ---
+    with open("articles.json", "r") as f:
+        articles = json.load(f)
+
+    # Récupérer la liste unique des tags
+    all_tags = set()
+    for art in articles:
+        for t in art["tags"]:
+            all_tags.add(t)
+    sorted_tags = sorted(list(all_tags))
+
+    # --- ÉTAPE 2 : CRÉATION DE BASE ---
+    user_name = input("\n👉 Comment t'appelles-tu ? : ")
+    new_id = f"user_{random.randint(10000, 99999)}"
+
+    # Initialisation : Tout le monde commence à 0.5 (Curiosité neutre)
+    # Et niveau 1 (Débutant)
+    new_user = {
+        "user_id": new_id,
+        "name": user_name,
+        "weights": {tag: 0.5 for tag in sorted_tags},
+        "mastery": {tag: 1 for tag in sorted_tags},
+        "history": [],
+    }
+
+    # --- ÉTAPE 3 : SÉLECTION DÉCLARATIVE (MACRO) ---
+    print("\nQuels sont tes domaines de prédilection ?")
+    for i, tag in enumerate(sorted_tags):
+        print(f"   {i + 1}. {tag}")
+
+    print("\n(Entre les numéros séparés par une virgule, ex: 1, 3)")
+    choices = input("👉 Tes choix : ")
+
+    chosen_tags = []
+    try:
+        indices = [int(x.strip()) - 1 for x in choices.split(",")]
+        for idx in indices:
+            if 0 <= idx < len(sorted_tags):
+                tag = sorted_tags[idx]
+                chosen_tags.append(tag)
+                # BOOST INITIAL : On met un poids fort
+                new_user["weights"][tag] = 2.0
+                print(f"   ✅ {tag} ajouté aux favoris.")
+    except ValueError:
+        print("⚠️  Entrée invalide. On continue avec les valeurs par défaut.")
+
+    # --- ÉTAPE 4 : CALIBRATION FINE (MICRO) ---
+    # On propose de calibrer si l'utilisateur a choisi au moins un tag
+    if chosen_tags:
+        print("\n" + "-" * 40)
+        print("🎯 Veux-tu affiner ton profil avec 3 exemples rapides ?")
+        confirm = input("👉 (o/n) : ").lower()
+
+        if confirm == "o":
+            print("\n🔍 Analyse de tes goûts...")
+
+            # STRATÉGIE DE SÉLECTION D'ARTICLES :
+            # On prend 2 articles liés à ses choix (pour vérifier la profondeur)
+            # Et 1 article aléatoire (pour vérifier l'ouverture d'esprit)
+
+            candidates = [
+                a for a in articles if any(t in chosen_tags for t in a["tags"])
+            ]
+            random_candidates = [a for a in articles if a not in candidates]
+
+            # On pioche 2 pertinents et 1 hasard
+            sample_articles = random.sample(candidates, min(2, len(candidates)))
+            if random_candidates:
+                sample_articles.append(random.choice(random_candidates))
+
+            # Boucle de notation
+            for art in sample_articles:
+                print(f"\n📄 {art['title']}")
+                print(f"   Tags : {art['tags']}")
+                # Si tu avais un champ "summary" ou "content" court, tu l'afficherais ici
+                # print(f"   Résumé : {art['content'][:100]}...")
+
+                vote = input(
+                    "   Est-ce que ça t'intéresse ? (1: Oui! / 2: Bof / 3: Pas du tout) : "
+                )
+
+                if vote == "1":  # OUI -> Gros Boost
+                    for t in art["tags"]:
+                        new_user["weights"][t] = round(
+                            new_user["weights"].get(t, 0.5) + 0.8, 2
+                        )
+                    print("   👍 Noté : On t'en proposera plus !")
+
+                elif vote == "2":  # BOF -> Petit Malus
+                    for t in art["tags"]:
+                        # On baisse doucement, sans descendre sous 0.1
+                        current = new_user["weights"].get(t, 0.5)
+                        new_user["weights"][t] = max(0.1, round(current - 0.2, 2))
+
+                elif vote == "3":  # NON -> Gros Malus
+                    for t in art["tags"]:
+                        current = new_user["weights"].get(t, 0.5)
+                        new_user["weights"][t] = max(0.0, round(current - 0.8, 2))
+                    print("   👎 Noté : On évitera ce genre de sujet.")
+
+    # --- ÉTAPE 5 : SAUVEGARDE ---
+    # Chargement du fichier users existant
+    try:
+        with open("users.json", "r") as f:
+            users = json.load(f)
+    except FileNotFoundError:
+        users = []
+
+    users.append(new_user)
+
+    with open("users.json", "w") as f:
+        json.dump(users, f, indent=4)
+
+    print("\n" + "=" * 40)
+    print(f"✨ Profil terminé ! ID: {new_id}")
+    print("=" * 40)
+
+    return new_id
+
+
 # --- 5. EXÉCUTION DU SCÉNARIO ---
 if __name__ == "__main__":
     # Initialisation
@@ -416,10 +540,8 @@ if __name__ == "__main__":
             # On recharge pour voir les effets si on fait un choix 3 juste après
             users, articles = load_data()
         elif choice == 8:
-            created_id = create_new_user_wizard()
-            # On connecte automatiquement le nouvel utilisateur
-            test_user_id = created_id
-            # On recharge les données
+            new_id = onboard_user_hybrid()
+            test_user_id = new_id  # On connecte directement le nouveau
             users, articles = load_data()
         else:
             print("❌ Choix invalide.")
