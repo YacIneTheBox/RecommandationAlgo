@@ -153,17 +153,19 @@
         "user_id": "user_5",
         "name": "User5",
         "weights": {
-            "Math": 0.91,
+            "Math": 1.11,
             "Physique": 1.02,
             "Psycho": 1.32,
             "Medecine": 1.25,
             "Histoire": 1.3,
             "Geographie": 2.13,
             "Geologie": 0.61,
-            "Informatique": 1.66,
+            "Informatique": 1.86,
             "Art": 0.65
         },
-        "history": [],
+        "history": [
+            "article_110"
+        ],
         "mastery": {
             "Math": 2,
             "Physique": 1,
@@ -342,13 +344,45 @@
         "user_id": "user_82489",
         "name": "jordanofsky",
         "weights": {
+            "Art": 2.4,
+            "Geographie": 0.7,
+            "Geologie": 0.5,
+            "Histoire": 0.5,
+            "Informatique": 0.7,
+            "Math": 2.6,
+            "Medecine": 0.5,
+            "Physique": 0.5,
+            "Psycho": 2.2
+        },
+        "mastery": {
+            "Art": 1,
+            "Geographie": 1,
+            "Geologie": 1,
+            "Histoire": 1,
+            "Informatique": 1,
+            "Math": 1,
+            "Medecine": 1,
+            "Physique": 1,
+            "Psycho": 1
+        },
+        "history": [
+            "article_0",
+            "article_116",
+            "article_83",
+            "article_110"
+        ]
+    },
+    {
+        "user_id": "user_10",
+        "name": "johny",
+        "weights": {
             "Art": 2.0,
             "Geographie": 0.5,
             "Geologie": 0.5,
             "Histoire": 0.5,
             "Informatique": 0.5,
-            "Math": 2.0,
-            "Medecine": 0.5,
+            "Math": 0.5,
+            "Medecine": 2.0,
             "Physique": 0.5,
             "Psycho": 2.0
         },
@@ -364,5 +398,37 @@
             "Psycho": 1
         },
         "history": []
+    },
+    {
+        "user_id": "user_11",
+        "name": "johnson",
+        "weights": {
+            "Art": 2.2,
+            "Geographie": 0.5,
+            "Geologie": 0.5,
+            "Histoire": 0.5,
+            "Informatique": 2.4,
+            "Math": 1.1,
+            "Medecine": 2.4,
+            "Physique": 0.5,
+            "Psycho": 0.5
+        },
+        "mastery": {
+            "Art": 1,
+            "Geographie": 1,
+            "Geologie": 1,
+            "Histoire": 1,
+            "Informatique": 1,
+            "Math": 1,
+            "Medecine": 1,
+            "Physique": 1,
+            "Psycho": 1
+        },
+        "history": [
+            "article_0",
+            "article_13",
+            "article_195",
+            "article_73"
+        ]
     }
 ]

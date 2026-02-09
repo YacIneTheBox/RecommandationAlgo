@@ -1,5 +1,6 @@
 import json
 import random
+from re import PatternError
 
 
 # --- 1. CHARGEMENT DES DONNÉES ---
@@ -34,7 +35,7 @@ def calculate_score(user, article):
     elif diff == 1:
         score += 0.5  # Un peu dur (Challenge acceptable)
     elif diff > 1:
-        score -= 5.0  # Trop dur (Pénalité forte)
+        score -= 3.0  # Trop dur (Pénalité forte)
     elif diff < 0:
         score -= 1.0  # Trop facile (Petite pénalité)
 
@@ -51,76 +52,149 @@ def calculate_score(user, article):
 
 # --- 3. GÉNÉRATEUR DE LISTE ---
 def get_recommendations(user_id, all_users, all_articles, top_n=10):
-    # Trouver le bon utilisateur
+    # 1. Trouver le bon utilisateur
     target_user = next((u for u in all_users if u["user_id"] == user_id), None)
     if not target_user:
-        return []
+        print("❌ Erreur: Utilisateur introuvable.")
+        return [], None  # Attention: je renvoie une liste vide ET None pour user_obj
 
-    scored_articles = []
+    print(f"\n🔍 --- DEBUG ALGO pour {target_user['name']} ---")
 
-    # --- 1. SCORING CLASSIQUE ---
+    # --- LISTES TEMPORAIRES ---
+    pertinence_list = []
+    discovery_list = []
+    collab_list = []
+
+    # ==========================================
+    # 1. PERTINENCE (CONTENT-BASED) -> Objectif ~70%
+    # ==========================================
     for article in all_articles:
         if article["article_id"] in target_user["history"]:
             continue
 
-        final_score = calculate_score(target_user, article)
-
-        scored_articles.append(
+        score = calculate_score(target_user, article)
+        pertinence_list.append(
             {
                 "id": article["article_id"],
                 "title": article["title"],
                 "tags": article["tags"],
                 "level": article["level"],
-                "score": round(final_score, 2),
-                "type": "pertinence",  # On marque l'origine
+                "score": score,
+                "type": "pertinence",
             }
         )
 
-    # Tri décroissant
-    scored_articles.sort(key=lambda x: x["score"], reverse=True)
+    # On trie et on prend les meilleurs
+    pertinence_list.sort(key=lambda x: x["score"], reverse=True)
+    nb_pertinent = int(0.7 * top_n)  # 7 articles sur 10
+    final_pertinent = pertinence_list[:nb_pertinent]
+    print(
+        f"✅ Pertinence : {len(final_pertinent)} articles sélectionnés (Top score: {final_pertinent[0]['score'] if final_pertinent else 0})"
+    )
 
-    # --- 2. INJECTION DE DIVERSITÉ ---
-    # On garde les (top_n - 2) meilleurs articles "logiques"
-    nb_pertinent = max(1, int(0.8 * top_n))
-    final_list = scored_articles[:nb_pertinent]
+    # ==========================================
+    # 2. COLLABORATION (USER-BASED) -> Objectif ~15%
+    # ==========================================
+    jumeau, dist, new_items_ids = finding_useful_jumeau(
+        target_user, all_users, min_history_len=1
+    )
 
-    # On cherche des articles "Découverte" (Tags avec poids faible < 1.5)
-    discovery_candidates = []
-    low_interest_tags = [t for t, w in target_user["weights"].items() if w < 1.5]
+    nb_collab = int(0.15 * top_n)  # ~1 ou 2 articles
+    collab_list = []
 
-    # Si l'user aime tout, on prend n'importe quoi d'autre
-    if not low_interest_tags:
-        low_interest_tags = list(target_user["weights"].keys())
+    if jumeau:
+        print(f"👯 Jumeau UTILE trouvé : {jumeau['name']} (Dist: {round(dist, 2)})")
+        print(f"   -> Il a {len(new_items_ids)} articles nouveaux pour nous.")
 
-    for article in all_articles:
-        # Pas d'article déjà lu, ni déjà dans la liste finale
-        if article["article_id"] in target_user["history"]:
-            continue
-        if any(a["id"] == article["article_id"] for a in final_list):
-            continue
+        # On transforme les IDs en objets articles complets
+        for art_id in new_items_ids:
+            # On vérifie que ce n'est pas déjà dans la liste de pertinence
+            if any(p["id"] == art_id for p in final_pertinent):
+                continue
 
-        # Si l'article contient un tag "faible intérêt"
-        if any(t in low_interest_tags for t in article["tags"]):
-            discovery_candidates.append(
-                {
-                    "id": article["article_id"],
-                    "title": article["title"],
-                    "tags": article["tags"],
-                    "level": article["level"],
-                    "score": calculate_score(target_user, article),  # Score fictif
-                    "type": "🌟 DÉCOUVERTE",  # Pour l'affichage
-                }
+            article_obj = next(
+                (a for a in all_articles if a["article_id"] == art_id), None
             )
 
-    # On ajoute 2 articles de découverte au hasard (s'il y en a)
-    if discovery_candidates:
-        final_list.extend(
-            random.sample(discovery_candidates, min(2, len(discovery_candidates)))
+            if article_obj:
+                collab_list.append(
+                    {
+                        "id": article_obj["article_id"],
+                        "title": article_obj["title"],
+                        "tags": article_obj["tags"],
+                        "level": article_obj["level"],
+                        "score": 5.0,  # Score Max
+                        "type": f"🤝 Lu par {jumeau['name']}",
+                    }
+                )
+
+        # On coupe si on en a trop
+        collab_list = collab_list[:nb_collab]
+        print(f"✅ Collaboration : {len(collab_list)} articles ajoutés.")
+
+    else:
+        print("⚠️ Collaboration : Aucun voisin n'a d'historique pertinent à partager.")
+
+    # ==========================================
+    # 3. DÉCOUVERTE (ALEATOIRE CONTROLÉ) -> Objectif ~15% + Reste
+    # ==========================================
+    # On calcule combien de places il reste pour atteindre top_n
+    slots_filled = len(final_pertinent) + len(collab_list)
+    slots_needed = top_n - slots_filled
+
+    if slots_needed > 0:
+        # On cherche des articles non lus, non sélectionnés, avec des tags faibles
+        low_interest_tags = [t for t, w in target_user["weights"].items() if w < 1.5]
+        if not low_interest_tags:
+            low_interest_tags = list(target_user["weights"].keys())  # Fallback
+
+        excluded_ids = (
+            set(target_user["history"])
+            | {a["id"] for a in final_pertinent}
+            | {a["id"] for a in collab_list}
         )
 
-    # Optionnel : On mélange un peu la fin de liste pour ne pas que les découvertes soient toujours en bas
-    # Mais pour l'instant, laissons-les à la fin pour bien les voir.
+        candidates = [
+            a
+            for a in all_articles
+            if a["article_id"] not in excluded_ids
+            and any(t in low_interest_tags for t in a["tags"])
+        ]
 
+        if candidates:
+            # On pioche au hasard
+            picked = random.sample(candidates, min(slots_needed, len(candidates)))
+            for a in picked:
+                discovery_list.append(
+                    {
+                        "id": a["article_id"],
+                        "title": a["title"],
+                        "tags": a["tags"],
+                        "level": a["level"],
+                        "score": calculate_score(
+                            target_user, a
+                        ),  # Score nul mais c'est pas grave
+                        "type": "🌟 DÉCOUVERTE",
+                    }
+                )
+            print(f"✅ Découverte : {len(discovery_list)} articles injectés.")
+        else:
+            print("⚠️ Découverte : Pas assez d'articles candidats.")
+
+    # ==========================================
+    # 4. ASSEMBLAGE FINAL
+    # ==========================================
+    # L'ordre compte ! D'abord les amis, puis la pertinence, puis la découverte en bas
+    final_list = collab_list + final_pertinent + discovery_list
+
+    # Sécurité : Si on n'a pas atteint top_n (cas rare), on comble avec du pertinent
+    if len(final_list) < top_n:
+        print("🔧 Comblage : On ajoute plus d'articles pertinents pour finir la liste.")
+        used_ids = {a["id"] for a in final_list}
+        rest = [a for a in pertinence_list if a["id"] not in used_ids]
+        final_list.extend(rest[: top_n - len(final_list)])
+
+    print("-----------------------------------")
     return target_user, final_list
 
 
@@ -161,9 +235,9 @@ def simulate_interaction(user_id, article_id, interaction_type):
                 # 2. Mise à jour de l'historique (SANS DUPLICATION)
                 if article_id not in user["history"]:
                     user["history"].append(article_id)
-                    print(f"   -> Ajouté à l'historique de lecture.")
+                    print("   -> Ajouté à l'historique de lecture.")
                 else:
-                    print(f"   -> Déjà dans l'historique (pas de doublon).")
+                    print("   -> Déjà dans l'historique (pas de doublon).")
 
                 # 3. Sauvegarde immédiate
                 with open("users.json", "w") as f:
@@ -230,6 +304,120 @@ def apply_time_decay():
     print("✅ Temps écoulé : Tous les intérêts ont légèrement baissé.")
 
 
+# ajout de filtrage collaboratifs pour calculer la disntace entre les users
+
+
+def euclidian_distance(user1, user2):
+    distance = 0
+    # On récupère tous les tags uniques des deux dictionnaires pour ne rien oublier
+    all_tags = set(user1["weights"].keys()) | set(user2["weights"].keys())
+
+    for tag in all_tags:
+        # .get(tag, 0) permet de dire : "Si ce user n'a pas ce tag, considère que c'est 0"
+        val1 = user1["weights"].get(tag, 0)
+        val2 = user2["weights"].get(tag, 0)
+
+        distance += (val1 - val2) ** 2
+
+    return distance**0.5
+
+
+def finding_jumeau(target_user, all_users):
+    best_jumeau = None
+    min_dist = float("inf")  # Infini
+
+    for other_user in all_users:
+        # 1. On ne se compare pas à soi-même
+        if other_user["user_id"] == target_user["user_id"]:
+            continue
+
+        # 2. On calcule la distance
+        dist = euclidian_distance(target_user, other_user)
+
+        # 3. On garde le meilleur
+        if dist < min_dist:
+            min_dist = dist
+            best_jumeau = other_user
+
+    return best_jumeau
+
+
+def finding_useful_jumeau(target_user, all_users, min_history_len=1):
+    """
+    Trouve l'utilisateur le plus proche qui a lu au moins 'min_history_len' articles
+    que le target_user n'a PAS encore lus.
+    """
+    candidates = []
+
+    # 1. On calcule la distance avec TOUS les autres utilisateurs
+    for other_user in all_users:
+        if other_user["user_id"] == target_user["user_id"]:
+            continue
+
+        dist = euclidian_distance(target_user, other_user)
+        candidates.append((dist, other_user))
+
+    # 2. On trie par distance croissante (du plus proche au plus éloigné)
+    # C'est ça l'astuce : on a une liste ordonnée de "jumeaux potentiels"
+    candidates.sort(key=lambda x: x[0])
+
+    # 3. On parcourt la liste pour trouver le premier "Utile"
+    my_history = set(target_user["history"])
+
+    for dist, candidate in candidates:
+        # A-t-il un historique ?
+        if not candidate["history"]:
+            continue
+
+        candidate_history = set(candidate["history"])
+
+        # A-t-il lu des trucs que JE n'ai pas lus ?
+        # (C'est inutile de prendre un jumeau qui a lu exactement les mêmes livres que moi)
+        new_items = candidate_history - my_history
+
+        if len(new_items) >= min_history_len:
+            # BINGO ! C'est lui le meilleur jumeau utile
+            return candidate, dist, new_items
+
+    # Si personne n'a rien d'intéressant à proposer
+    return None, 0, []
+
+
+def collaborative_filtering(target_user, jumeau, all_articles):
+    reco_collab = []
+
+    if not jumeau or not jumeau.get("history"):
+        return []
+
+    # Les IDs que le jumeau a lus
+    jumeau_history_ids = set(jumeau["history"])
+    # Les IDs que j'ai lus
+    my_history_ids = set(target_user["history"])
+
+    # La différence : Ce qu'il a lu ET que je n'ai PAS lu
+    ids_to_recommend = jumeau_history_ids - my_history_ids
+
+    for art_id in ids_to_recommend:
+        # On doit retrouver l'objet article complet dans la liste all_articles
+        # (C'est un peu lourd mais nécessaire avec des fichiers JSON)
+        article_obj = next((a for a in all_articles if a["article_id"] == art_id), None)
+
+        if article_obj:
+            # On formate l'article pour qu'il ressemble aux autres recommandations
+            reco_collab.append(
+                {
+                    "id": article_obj["article_id"],
+                    "title": article_obj["title"],
+                    "tags": article_obj["tags"],
+                    "level": article_obj["level"],
+                    "score": calculate_score(target_user, article_obj),
+                    "type": f"🤝 Lu par {jumeau['name']}",  # Petit bonus visuel
+                }
+            )
+
+    return reco_collab
+
+
 # --- FONCTION UTILITAIRE POUR L'AFFICHAGE ---
 def print_separator(title):
     print(f"\n{'=' * 60}")
@@ -240,7 +428,7 @@ def print_separator(title):
 def print_top_interests(weights, top_n=5):
     # Trie les poids du plus grand au plus petit
     sorted_weights = sorted(weights.items(), key=lambda x: x[1], reverse=True)[:top_n]
-    print(f"🧠 TOP INTÉRÊTS : ", end="")
+    print("🧠 TOP INTÉRÊTS : ", end="")
     items = [f"{k}: {v}" for k, v in sorted_weights]
     print(" | ".join(items))
 
@@ -483,6 +671,7 @@ if __name__ == "__main__":
         print("6. 🚪 Quitter")
         print("7. ⏳ Simuler '1 Semaine plus tard' (Decay)")  # NOUVEAU
         print("8. ✨ Créer un nouvel utilisateur (Onboarding)")
+        print()
         print("=" * 30)
 
         try:
