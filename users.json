@@ -430,5 +430,32 @@
             "article_195",
             "article_73"
         ]
+    },
+    {
+        "user_id": "user_32832",
+        "name": "zoubir",
+        "weights": {
+            "Art": 0.5,
+            "Geographie": 0.5,
+            "Geologie": 0.5,
+            "Histoire": 0.0,
+            "Informatique": 0.5,
+            "Math": 0.5,
+            "Medecine": 0.5,
+            "Physique": 2.0,
+            "Psycho": 2.6
+        },
+        "mastery": {
+            "Art": 1,
+            "Geographie": 1,
+            "Geologie": 1,
+            "Histoire": 1,
+            "Informatique": 1,
+            "Math": 1,
+            "Medecine": 1,
+            "Physique": 1,
+            "Psycho": 1
+        },
+        "history": []
     }
 ]
